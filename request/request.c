@@ -268,7 +268,7 @@ int rq_genericrequestcheck(nick *np, char *channelname, channel **cp, nick **qni
     return RQ_ERROR;
   }
 
-  if ((*userhand & CUMODE_OP) == 0) {
+  if ((*userhand & CUMODE_OWNER) == 0) {
     sendnoticetouser(rqnick, np, "Error: You must be op'd on the channel to "
           "request a service.");
 
