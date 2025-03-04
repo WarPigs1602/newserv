@@ -283,7 +283,7 @@ int localburstontochannel(channel *cp, nick *np, time_t timestamp, flag_t modes,
   /* Actually add the nick to the channel.  Make sure it's a local nick and actually exists first. */
   if (np && (homeserver(np->numeric) == mylongnum) &&
       !(getnumerichandlefromchanhash(cp->users,np->numeric))) {
-    addnicktochannel(cp,(np->numeric)|CUMODE_OP);
+    addnicktochannel(cp,(np->numeric)|CUMODE_OP|CUMODE_ADMIN|CUMODE_OWNER);
   } else {
     np=NULL; /* If we're not adding it here, don't send it later in the burst msg either */
   }
@@ -291,7 +291,7 @@ int localburstontochannel(channel *cp, nick *np, time_t timestamp, flag_t modes,
   if (connected) {
     /* actual burst message */
     if (np) {
-      sprintf(nickbuf," %s:o", longtonumeric(np->numeric,5));
+      sprintf(nickbuf," %s:O", longtonumeric(np->numeric,5));
     } else {
       nickbuf[0]='\0';
     }
@@ -404,7 +404,7 @@ int localcreatechannel(nick *np, char *channame) {
   cp->timestamp=getnettime();
   
   /* Add the local user to the channel, preopped */
-  addnicktochannel(cp,(np->numeric)|CUMODE_OP);
+  addnicktochannel(cp,(np->numeric)|CUMODE_OWNER);
   
   if (connected) {
     irc_send("%s C %s %ld",longtonumeric(np->numeric,5),cp->index->name->content,cp->timestamp);
@@ -426,18 +426,41 @@ int localgetops(nick *np, channel *cp) {
     return 1;
   }
   
+  if (*lp & CUMODE_OWNER) {
+    /* already opped */
+    return 1;
+  } else {
+	/* Op the user */
+	(*lp)|=CUMODE_OWNER;
+  
+	if (connected) {
+		irc_send("%s M %s +q %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	}
+  }
+  
+  if (*lp & CUMODE_ADMIN) {
+    /* already opped */
+    return 1;
+  } else {
+	/* Op the user */
+	(*lp)|=CUMODE_ADMIN;
+  
+	if (connected) {
+		irc_send("%s M %s +a %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	}
+  }  
+
   if (*lp & CUMODE_OP) {
     /* already opped */
     return 1;
-  }
+  } else {
+	/* Op the user */
+	(*lp)|=CUMODE_OP;
   
-  /* Op the user */
-  (*lp)|=CUMODE_OP;
-  
-  if (connected) {
-    irc_send("%s M %s +o %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	if (connected) {
+		irc_send("%s M %s +o %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	}
   }
-
   return 0;
 }
 
@@ -714,6 +737,24 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     return;
   }
 
+  if ((modes & MC_DEOWNER) && (*lp & CUMODE_OWNER)) {
+    (*lp) &= ~CUMODE_OWNER;
+    if (changes->changecount >= MAXMODEARGS)
+      localsetmodeflush(changes, 0);
+    changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
+    changes->changes[changes->changecount].dir=MCB_DEL;
+    changes->changes[changes->changecount++].flag='q';
+  }
+
+  if ((modes & MC_DEADMIN) && (*lp & CUMODE_ADMIN)) {
+    (*lp) &= ~CUMODE_ADMIN;
+    if (changes->changecount >= MAXMODEARGS)
+      localsetmodeflush(changes, 0);
+    changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
+    changes->changes[changes->changecount].dir=MCB_DEL;
+    changes->changes[changes->changecount++].flag='a';
+  }
+  
   if ((modes & MC_DEOP) && (*lp & CUMODE_OP)) {
     (*lp) &= ~CUMODE_OP;
     if (changes->changecount >= MAXMODEARGS)
@@ -722,7 +763,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].dir=MCB_DEL;
     changes->changes[changes->changecount++].flag='o';
   }
-
+ 
   if ((modes & MC_DEVOICE) && (*lp & CUMODE_VOICE)) {
     (*lp) &= ~CUMODE_VOICE;
     if (changes->changecount >= MAXMODEARGS)
@@ -732,6 +773,24 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount++].flag='v';
   }
 
+  if ((modes & MC_OWNER) && !(modes & MC_DEOWNER) && !(*lp & CUMODE_OWNER)) {
+    (*lp) |= CUMODE_OWNER;
+    if (changes->changecount >= MAXMODEARGS)
+      localsetmodeflush(changes, 0);
+    changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
+    changes->changes[changes->changecount].dir=MCB_ADD;
+    changes->changes[changes->changecount++].flag='q';
+  }
+
+  if ((modes & MC_ADMIN) && !(modes & MC_DEADMIN) && !(*lp & CUMODE_ADMIN)) {
+    (*lp) |= CUMODE_ADMIN;
+    if (changes->changecount >= MAXMODEARGS)
+      localsetmodeflush(changes, 0);
+    changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
+    changes->changes[changes->changecount].dir=MCB_ADD;
+    changes->changes[changes->changecount++].flag='a';
+  }
+  
   if ((modes & MC_OP) && !(modes & MC_DEOP) && !(*lp & CUMODE_OP)) {
     (*lp) |= CUMODE_OP;
     if (changes->changecount >= MAXMODEARGS)
@@ -827,7 +886,7 @@ void localsetmodeflush (modechanges *changes, int flushall) {
     if (homeserver(changes->source->numeric)!=mylongnum) {
       return;
     }
-    if ((*lp&CUMODE_OP)==0) {
+    if ((*lp&CUMODE_OP)==0||(*lp&CUMODE_ADMIN)==0||(*lp&CUMODE_OWNER)==0) {
       localgetops(changes->source,changes->cp);
     }
     strcpy(source,longtonumeric(changes->source->numeric,5));
@@ -877,7 +936,7 @@ void localusermodechange(nick *np, channel *cp, char *modes) {
     if (homeserver(np->numeric)!=mylongnum) {
       return;
     }
-    if ((*lp&CUMODE_OP)==0) {
+    if ((*lp&CUMODE_OWNER)==0 || (*lp&CUMODE_ADMIN)==0 || (*lp&CUMODE_OP)==0) {
       localgetops(np,cp);
     }
     strcpy(source,longtonumeric(np->numeric,5));
@@ -903,7 +962,7 @@ void localsettopic(nick *np, channel *cp, char *topic) {
     if (homeserver(np->numeric)!=mylongnum) {
       return;
     }
-    if ((*lp&CUMODE_OP)==0 && IsTopicLimit(cp)) {
+    if (((*lp&CUMODE_OWNER)==0 || (*lp&CUMODE_ADMIN)==0 || (*lp&CUMODE_OP)==0) && IsTopicLimit(cp)) {
       localgetops(np,cp);
     }
     strcpy(source,longtonumeric(np->numeric,5));
@@ -960,7 +1019,7 @@ void _localkickuser(nick *np, channel *cp, nick *target, const char *message) {
     if (homeserver(np->numeric)!=mylongnum) {
       return;
     }
-    if ((*lp&CUMODE_OP)==0) {
+    if ((*lp&CUMODE_OWNER)==0 || (*lp&CUMODE_ADMIN)==0 || (*lp&CUMODE_OP)==0) {
       localgetops(np,cp);
     }
     strcpy(source,longtonumeric(np->numeric,5));

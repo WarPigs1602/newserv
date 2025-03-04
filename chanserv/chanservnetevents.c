@@ -213,7 +213,7 @@ void cs_handlejoin(int hooknum, void *arg) {
   if (!rup || !rcup) {
     /* They're not a registered user, so deop if it is a create */
     if (isopped && !IsService(np)) {
-      modes |= MC_DEOP;
+      modes |= MC_DEOWNER|MC_DEADMIN|MC_DEOP|MC_DEHOP;
     }
     if (CIsVoiceAll(rcp)) {
       modes |= MC_VOICE;
@@ -230,17 +230,25 @@ void cs_handlejoin(int hooknum, void *arg) {
      * csdb_updatelastjoin(rcup); */
     
     /* They are registered, let's see what to do with them */
-    if (CUIsOp(rcup) && (CIsAutoOp(rcp) || CUIsAutoOp(rcup) || CUIsProtect(rcup) || CIsProtect(rcp)) && 
+    if ((CUIsOwner(rcup) || CUIsMaster(rcup) || CUIsOp(rcup)) && (CIsAutoOp(rcp) || CUIsAutoOp(rcup) || CUIsProtect(rcup) || CIsProtect(rcp)) && 
     	!CUIsDeny(rcup)) {
       /* Auto op */
-      if (!isopped) {
-        modes |= MC_OP;
-        cs_logchanop(rcp, np->nick, rup);
+      if(CUIsOwner(rcup)) {	  	  
+		modes |= MC_OWNER;
+		cs_logchanop(rcp, np->nick, rup);
+      } else 
+      if(CUIsMaster(rcup)) {	  	  
+		modes |= MC_ADMIN;
+		cs_logchanop(rcp, np->nick, rup);
+      } else 
+      if(CUIsOp(rcup)) {	  	  
+		modes |= MC_OP;
+		cs_logchanop(rcp, np->nick, rup);
       }
     } else {
       /* Not auto op; deop them if they are opped and are not allowed them */
-      if (isopped && !CUHasOpPriv(rcup) && !IsService(np)) {
-        modes |= MC_DEOP;
+      if (isopped && !CUHasOwnerPriv(rcup) && !CUHasMasterPriv(rcup) && !CUHasOpPriv(rcup) && !IsService(np)) {
+        modes |= MC_DEOWNER|MC_DEADMIN|MC_DEOP;
       }
 
       if (!CUIsQuiet(rcup) &&                                                /* Not +q */
@@ -351,6 +359,34 @@ void cs_handleopchange(int hooknum, void *arg) {
   rup=getreguserfromnick(target);
 
   switch(hooknum) {
+    case HOOK_CHANNEL_OWNER:
+      if (CIsBitch(rcp) && !IsService(target)) {
+        if (!rup || (rcup=findreguseronchannel(rcp,rup))==NULL || !CUIsMaster(rcup) || CUIsDeny(rcup))
+          modes |= MC_DEOWNER;
+      }
+      break;
+	  
+    case HOOK_CHANNEL_DEOWNER:
+      if (CIsProtect(rcp)) {
+        if (rup && (rcup=findreguseronchannel(rcp,rup))!=NULL && CUIsMaster(rcup) && !CUIsDeny(rcup))
+          modes |= MC_OWNER;
+      }
+      break;
+	  
+    case HOOK_CHANNEL_ADMIN:
+      if (CIsBitch(rcp) && !IsService(target)) {
+        if (!rup || (rcup=findreguseronchannel(rcp,rup))==NULL || !CUIsMaster(rcup) || CUIsDeny(rcup))
+          modes |= MC_DEADMIN;
+      }
+      break;
+	  
+    case HOOK_CHANNEL_DEADMIN:
+      if (CIsProtect(rcp)) {
+        if (rup && (rcup=findreguseronchannel(rcp,rup))!=NULL && CUIsMaster(rcup) && !CUIsDeny(rcup))
+          modes |= MC_ADMIN;
+      }
+      break;
+	  
     case HOOK_CHANNEL_OPPED:
       if (CIsBitch(rcp) && !IsService(target)) {
         if (!rup || (rcup=findreguseronchannel(rcp,rup))==NULL || !CUIsOp(rcup) || CUIsDeny(rcup))

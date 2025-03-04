@@ -9,6 +9,12 @@
 #define MC_VOICE       0x0002
 #define MC_DEOP        0x0004
 #define MC_DEVOICE     0x0008
+#define MC_HOP         0x0010
+#define MC_DEHOP       0x0020
+#define MC_ADMIN       0x0040
+#define MC_DEADMIN     0x0080
+#define MC_OWNER       0x0100
+#define MC_DEOWNER     0x0200
 
 #define MCB_ADD        0x0001
 #define MCB_DEL        0x0002

@@ -40,7 +40,6 @@ int csa_auth(void *source, int cargc, char **cargv, CRAlgorithm alg) {
     chanservstdmessage(sender, QM_NOTENOUGHPARAMS, "auth");
     return CMD_ERROR;
   }
-  
   if (!(aup = getactiveuserfromnick(sender)))
     return CMD_ERROR;
   

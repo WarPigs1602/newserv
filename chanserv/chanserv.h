@@ -174,9 +174,13 @@
 #define CA_DEOPPED     0x2000
 #define CA_VOICED      0x4000
 #define CA_DEVOICED    0x8000
+#define CA_OWNER       0x10000
+#define CA_DEOWNER     0x20000
+#define CA_ADMIN      0x40000
+#define CA_DEADMIN    0x80000
 
 #define CA_NEEDKNOWN  (CA_KNOWN|CA_OPPRIV|CA_MASTERPRIV|CA_TOPICPRIV|CA_OWNERPRIV)
-#define CA_ONCHANREQ  (CA_ONCHAN|CA_OPPED|CA_DEOPPED|CA_VOICED|CA_DEVOICED)
+#define CA_ONCHANREQ  (CA_ONCHAN|CA_OWNER|CA_DEOWNER|CA_ADMIN|CA_DEADMIN|CA_OPPED|CA_DEOPPED|CA_VOICED|CA_DEVOICED)
 
 
 /* User flags */
@@ -399,6 +403,7 @@
 #define   CUHasVoicePriv(x)   ((x)->flags & (QCUFLAG_VOICE | QCUFLAG_OP | QCUFLAG_MASTER | QCUFLAG_OWNER))
 #define   CUHasOpPriv(x)      ((x)->flags & (QCUFLAG_OP | QCUFLAG_MASTER | QCUFLAG_OWNER))
 #define   CUHasMasterPriv(x)  ((x)->flags & (QCUFLAG_MASTER | QCUFLAG_OWNER))
+#define   CUHasOwnerPriv(x)  ((x)->flags & QCUFLAG_OWNER)
 #define   CUHasTopicPriv(x)   ((x)->flags & (QCUFLAG_MASTER | QCUFLAG_OWNER | QCUFLAG_TOPIC))
 
 #define   CUSetOwner(x)        ((x)->flags |= QCUFLAG_OWNER)

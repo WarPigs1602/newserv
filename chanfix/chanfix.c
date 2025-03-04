@@ -331,7 +331,7 @@ int cfcmd_chanopstat(void *source, int cargc, char **cargv) {
   i = 0;
 
   for (a=0;a<cp->users->hashsize;a++) {
-    if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OP)) {
+    if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OWNER)) {
       np2 = getnickbynumeric(cp->users->content[a]);
 
       ro = cf_findregop(np2, cp->index, CFACCOUNT | CFHOST);
@@ -402,7 +402,7 @@ int cfcmd_chanoplist(void *source, int cargc, char **cargv) {
       if (hand != NULL)
         controlreply(np, "%3d %5d %-7s %1s%-16s %s@%s (%s)", i + 1, rolist[i]->score,
                      (rolist[i]->type == CFACCOUNT) ? "account" : "host",
-                     (*hand & CUMODE_OP) ? "@" : "", np2->nick, np2->ident,
+                     (*hand & CUMODE_OWNER) ? "~" : "", np2->nick, np2->ident,
                      np2->host->name->content, np2->realname->name->content);
     } else {
       ct = rolist[i]->lastopped;
@@ -561,9 +561,9 @@ int cfcmd_requestop(void *source, int cargc, char **cargv) {
   }
 
   for (a=0;a<cp->users->hashsize;a++) {
-    if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OP)) {
-      controlreply(np, "There are ops on channel %s. This command can only be"
-                   " used if there are no ops.", cargv[0]);
+    if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OWNER)) {
+      controlreply(np, "There are owners on channel %s. This command can only be"
+                   " used if there are no owners.", cargv[0]);
 
       return CMD_ERROR;
     }
@@ -578,7 +578,7 @@ int cfcmd_requestop(void *source, int cargc, char **cargv) {
 
   if (cf_wouldreop(user, cp)) {
     localsetmodeinit(&changes, cp, mynick);
-    localdosetmode_nick(&changes, user, MC_OP);
+    localdosetmode_nick(&changes, user, MC_OWNER);
     localsetmodeflush(&changes, 1);
 
     controlreply(np, "Chanfix opped you on the specified channel.");
@@ -650,7 +650,7 @@ int cf_hasauthedcloneonchan(nick *np, channel *cp) {
 
     hand = getnumerichandlefromchanhash(cp->users, jp->numeric);
 
-    if (hand && (*hand & CUMODE_OP) && strcmp(np->ident, jp->ident) == 0)
+    if (hand && (*hand & CUMODE_OWNER) && strcmp(np->ident, jp->ident) == 0)
       return 1;
   }
 
@@ -683,7 +683,7 @@ void cfsched_dosample(void *arg) {
         continue;
 
       for (a=0;a<cp->users->hashsize;a++) {
-        if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OP)) {
+        if ((cp->users->content[a] != nouser) && (cp->users->content[a] & CUMODE_OWNER)) {
           np = getnickbynumeric(cp->users->content[a]);
 
           if (!np)
@@ -1112,10 +1112,10 @@ int cf_fixchannel(channel *cp) {
       np = getnickbynumeric(cp->users->content[a]);
 
       if (IsService(np) && (np->nick[1] == '\0')) {
-        localdosetmode_nick(&changes, np, MC_OP);
+        localdosetmode_nick(&changes, np, MC_OWNER);
         count++;
       } else
-        localdosetmode_nick(&changes, np, MC_DEOP);
+        localdosetmode_nick(&changes, np, MC_DEOWNER);
     }
   }
 

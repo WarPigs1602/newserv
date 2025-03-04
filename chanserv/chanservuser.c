@@ -758,15 +758,34 @@ void cs_docheckopvoice(channel *cp, modechanges *changes) {
         continue;
       }
     }
-                                      
-    if ((cp->users->content[i] & CUMODE_OP) && !IsService(np)) {
+    
+	if (cp->users->content[i] & CUMODE_OWNER) {
+      if ((CIsBitch(rcp) && (!rcup || !CUHasOwnerPriv(rcup))) ||
+           (rcup && CUIsDeny(rcup)))
+        localdosetmode_nick(changes, np, MC_DEOWNER);
+    } else {
+      if (rcup && (CUIsProtect(rcup) || CIsProtect(rcp)) && CUIsOwner(rcup) && !CUIsDeny(rcup)) {
+        localdosetmode_nick(changes, np, MC_OWNER);    
+      }
+    }
+	
+    if (cp->users->content[i] & CUMODE_ADMIN) {
+      if ((CIsBitch(rcp) && (!rcup || !CUHasMasterPriv(rcup))) ||
+           (rcup && CUIsDeny(rcup)))
+        localdosetmode_nick(changes, np, MC_DEADMIN);
+    } else {
+      if (rcup && (CUIsProtect(rcup) || CIsProtect(rcp)) && CUIsMaster(rcup) && !CUIsDeny(rcup)) {
+        localdosetmode_nick(changes, np, MC_ADMIN);    
+      }
+    }
+	
+    if (cp->users->content[i] & CUMODE_OP) {
       if ((CIsBitch(rcp) && (!rcup || !CUHasOpPriv(rcup))) ||
            (rcup && CUIsDeny(rcup)))
         localdosetmode_nick(changes, np, MC_DEOP);
     } else {
       if (rcup && (CUIsProtect(rcup) || CIsProtect(rcp)) && CUIsOp(rcup) && !CUIsDeny(rcup)) {
         localdosetmode_nick(changes, np, MC_OP);    
-        cs_logchanop(rcp, np->nick, rcup->user);
       }
     }
     
@@ -807,7 +826,7 @@ void cs_doallautomodes(nick *np) {
           continue;
         }
 
-        if (CUHasOpPriv(rcup) && cs_ischannelactive(rcup->chan->index->channel, NULL)) {
+        if ((CUHasOwnerPriv(rcup) || CUHasMasterPriv(rcup) || CUHasOpPriv(rcup)) && cs_ischannelactive(rcup->chan->index->channel, NULL)) {
           /* This meets the channel use criteria, update. */
           rcup->chan->lastactive=time(NULL);
           
@@ -819,6 +838,28 @@ void cs_doallautomodes(nick *np) {
         }
 
 	localsetmodeinit(&changes, rcup->chan->index->channel, chanservnick);
+	if (*lp & CUMODE_OWNER) {
+	  if (!IsService(np) && (CUIsDeny(rcup) || (CIsBitch(rcup->chan) && !CUHasOwnerPriv(rcup))))
+	    localdosetmode_nick(&changes, np, MC_DEOWNER);
+	} else {
+	  if (!CUIsDeny(rcup) && CUIsOwner(rcup) && 
+	      (CUIsProtect(rcup) || CIsProtect(rcup->chan) || CUIsAutoOp(rcup))) {
+	    localdosetmode_nick(&changes, np, MC_OWNER);
+	    cs_logchanop(rcup->chan, np->nick, rup);
+          }
+	}
+
+	if (*lp & CUMODE_ADMIN) {
+	  if (!IsService(np) && (CUIsDeny(rcup) || (CIsBitch(rcup->chan) && !CUHasMasterPriv(rcup))))
+	    localdosetmode_nick(&changes, np, MC_DEADMIN);
+	} else {
+	  if (!CUIsDeny(rcup) && CUIsMaster(rcup) && 
+	      (CUIsProtect(rcup) || CIsProtect(rcup->chan) || CUIsAutoOp(rcup))) {
+	    localdosetmode_nick(&changes, np, MC_ADMIN);
+	    cs_logchanop(rcup->chan, np->nick, rup);
+          }
+	}
+	
 	if (*lp & CUMODE_OP) {
 	  if (!IsService(np) && (CUIsDeny(rcup) || (CIsBitch(rcup->chan) && !CUHasOpPriv(rcup))))
 	    localdosetmode_nick(&changes, np, MC_DEOP);
@@ -829,7 +870,7 @@ void cs_doallautomodes(nick *np) {
 	    cs_logchanop(rcup->chan, np->nick, rup);
           }
 	}
-	
+
 	if (*lp & CUMODE_VOICE) {
 	  if (CUIsQuiet(rcup))
 	    localdosetmode_nick(&changes, np, MC_DEVOICE);
@@ -1301,6 +1342,7 @@ void cs_banuser(modechanges *changes, chanindex *cip, nick *np, const char *reas
  * presented itself...
  */
 flag_t cs_sanitisechanlev(flag_t flags) {
+	
   /* +m or +n cannot have any "punishment" flags */
   if (flags & (QCUFLAG_MASTER | QCUFLAG_OWNER))
     flags &= ~(QCUFLAGS_PUNISH);

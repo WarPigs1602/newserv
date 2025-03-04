@@ -67,6 +67,11 @@
 
 #define HOOK_CHANNEL_JOIN_BYPASS_BAN 417 /* Argument is void*[2] (channel, nick) */
 
+#define HOOK_CHANNEL_ADMIN         418  /* Argument is void*[3] (channel, nick, target) ** NICK COULD BE NULL ** */
+#define HOOK_CHANNEL_DEADMIN       419  /* Argument is void*[3] (channel, nick, target) ** NICK COULD BE NULL ** */
+#define HOOK_CHANNEL_OWNER        420  /* Argument is void*[3] (channel, nick, target) ** NICK COULD BE NULL ** */
+#define HOOK_CHANNEL_DEOWNER      421  /* Argument is void*[3] (channel, nick, target) ** NICK COULD BE NULL ** */
+
 #define HOOK_CHANSERV_DBLOADED     500 /* No arg */
 /* 501 spare for now */
 #define HOOK_CHANSERV_RUNNING      502 /* No arg */

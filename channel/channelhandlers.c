@@ -166,10 +166,18 @@ int handleburstmsg(void *source, int cargc, char **cargv) {
           currentmode=0;
           /* Look for modes */
           for (;*charp;charp++) {
-            if (*charp=='v') {
-              currentmode|=CUMODE_VOICE;
+            if (*charp=='O') {
+              currentmode|=CUMODE_SERVICE;
+            } else if (*charp=='q') {
+              currentmode|=CUMODE_OWNER;
+            } else if (*charp=='a') {
+              currentmode|=CUMODE_ADMIN;
             } else if (*charp=='o') {
               currentmode|=CUMODE_OP;
+            } else if (*charp=='h') {
+              currentmode|=CUMODE_HOP;
+            } else if (*charp=='v') {
+              currentmode|=CUMODE_VOICE;
             } else if (*charp==',') {
               charp++;
               break;
@@ -358,7 +366,7 @@ int handlecreatemsg(void *source, int cargc, char **cargv) {
       newchan=0;
     }
     /* Add the user to the channel, preopped */
-    if (addnicktochannel(cp,(np->numeric)|CUMODE_OP)) {
+    if (addnicktochannel(cp,(np->numeric)|CUMODE_OWNER)) {
       if (newchan) {
         delchannel(cp);
       }
@@ -721,8 +729,10 @@ int handlemodemsg(void *source, int cargc, char **cargv) {
         break;
         
       /* Op/Voice */
-      
+      case 'q':
+	  case 'a':
       case 'o':
+	  case 'h':
       case 'v': 
         if (arg<cargc) {
           if((lp=getnumerichandlefromchanhash(cp->users,numerictolong(cargv[arg++],5)))==NULL) {
@@ -735,8 +745,16 @@ int handlemodemsg(void *source, int cargc, char **cargv) {
               Error("channel",ERR_ERROR,"Mode change for user %s on channel %s who doesn't exist",cargv[arg-1],cp->index->name->content);
             } else { /* Do the mode change whilst admiring the beautiful code layout */
               harg[2]=target;
-              if (*modestr=='o') { if (dir) { *lp |= CUMODE_OP;     hooknum=HOOK_CHANNEL_OPPED;    } else 
+              if (*modestr=='O') { if (dir) { *lp |= CUMODE_SERVICE;     hooknum=HOOK_CHANNEL_OPPED;    } else 
+                                            { *lp &= ~CUMODE_SERVICE;    hooknum=HOOK_CHANNEL_DEOPPED;  } }
+                            else if (*modestr=='q') { if (dir) { *lp |= CUMODE_OWNER;     hooknum=HOOK_CHANNEL_OPPED;    } else 
+                                            { *lp &= ~CUMODE_OWNER;    hooknum=HOOK_CHANNEL_DEOPPED;  } }
+                            else if (*modestr=='a') { if (dir) { *lp |= CUMODE_ADMIN;     hooknum=HOOK_CHANNEL_OPPED;    } else 
+                                            { *lp &= ~CUMODE_ADMIN;    hooknum=HOOK_CHANNEL_DEOPPED;  } }
+                            else if (*modestr=='o') { if (dir) { *lp |= CUMODE_OP;     hooknum=HOOK_CHANNEL_OPPED;    } else 
                                             { *lp &= ~CUMODE_OP;    hooknum=HOOK_CHANNEL_DEOPPED;  } }
+                            else if (*modestr=='h') { if (dir) { *lp |= CUMODE_HOP;     hooknum=HOOK_CHANNEL_OPPED;    } else 
+                                            { *lp &= ~CUMODE_HOP;    hooknum=HOOK_CHANNEL_DEOPPED;  } }
                             else { if (dir) { *lp |= CUMODE_VOICE;  hooknum=HOOK_CHANNEL_VOICED;   } else 
                                             { *lp &= ~CUMODE_VOICE; hooknum=HOOK_CHANNEL_DEVOICED; } } 
               triggerhook(hooknum,harg);
@@ -809,8 +827,28 @@ int handleclearmodemsg(void *source, int cargc, char **cargv) {
 
   for (mcp=cargv[1];*mcp;mcp++) {
     switch (*mcp) {
+      case 'O':
+        usermask |= CUMODE_SERVICE;
+	changes |= MODECHANGE_USERS;
+        break;
+		
+      case 'q':
+        usermask |= CUMODE_OWNER;
+	changes |= MODECHANGE_USERS;
+        break;
+		
+      case 'a':
+        usermask |= CUMODE_ADMIN;
+	changes |= MODECHANGE_USERS;
+        break;
+		
       case 'o':
         usermask |= CUMODE_OP;
+	changes |= MODECHANGE_USERS;
+        break;
+		
+      case 'h':
+        usermask |= CUMODE_HOP;
 	changes |= MODECHANGE_USERS;
         break;
       
@@ -990,8 +1028,16 @@ void handlewhoischannels(int hooknum, void *arg) {
     /* sprintf'ing the channel name afterwards is guaranteed to fix it though */
     if (IsDeaf(target))
       buffer[bufpos++]='-';
-    if (*num & CUMODE_OP)
+    if (*num & CUMODE_SERVICE)
+      buffer[bufpos++]='!';
+    else if (*num & CUMODE_OWNER)
+      buffer[bufpos++]='~';
+    else if (*num & CUMODE_ADMIN)
+      buffer[bufpos++]='&';
+    else if (*num & CUMODE_OP)
       buffer[bufpos++]='@';
+    else if (*num & CUMODE_HOP)
+      buffer[bufpos++]='%';
     else if (*num & CUMODE_VOICE)
       buffer[bufpos++]='+';
 

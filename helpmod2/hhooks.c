@@ -202,6 +202,108 @@ static void helpmod_hook_nick_lostnick(int unused, void *args)
     huser_del(husr);
 }
 
+static void helpmod_hook_channel_owner(int unused, void *args)
+{
+    hchannel *hchan = hchannel_get_by_channel(((channel**)args)[0]);
+    huser_channel *huserchan;
+    huser *husr, *husr2;
+
+    if (hchan == NULL)
+        return;
+
+    husr  = huser_get(((nick**)args)[2]);
+    husr2 = huser_get(((nick**)args)[1]);
+
+    assert(husr != NULL);
+
+    huserchan = huser_on_channel(husr, hchan);
+
+    assert(huserchan != NULL);
+
+    huserchan->flags |= HCUMODE_OWNER;
+
+    if (hchan->flags & H_PASSIVE)
+        return;
+
+    /* if the +o was given by a network service, G will not interfere */
+    if (husr2 == NULL || strlen(huser_get_nick(husr2)) == 1)
+        return;
+
+    if (huser_get_level(husr) < H_STAFF)
+        helpmod_channick_modes(husr, hchan, MC_DEOWNER ,HNOW);
+}
+
+static void helpmod_hook_channel_deowner(int unused, void *args)
+{
+    hchannel *hchan = hchannel_get_by_channel(((channel**)args)[0]);
+    huser_channel *huserchan;
+    huser *husr;
+
+    if (hchan == NULL)
+        return;
+
+    husr = huser_get(((nick**)args)[2]);
+
+    assert(husr != NULL);
+
+    huserchan = huser_on_channel(husr, hchan);
+
+    assert(huserchan != NULL);
+
+    huserchan->flags &= ~HCUMODE_OWNER;
+}
+
+static void helpmod_hook_channel_admin(int unused, void *args)
+{
+    hchannel *hchan = hchannel_get_by_channel(((channel**)args)[0]);
+    huser_channel *huserchan;
+    huser *husr, *husr2;
+
+    if (hchan == NULL)
+        return;
+
+    husr  = huser_get(((nick**)args)[2]);
+    husr2 = huser_get(((nick**)args)[1]);
+
+    assert(husr != NULL);
+
+    huserchan = huser_on_channel(husr, hchan);
+
+    assert(huserchan != NULL);
+
+    huserchan->flags |= HCUMODE_ADMIN;
+
+    if (hchan->flags & H_PASSIVE)
+        return;
+
+    /* if the +o was given by a network service, G will not interfere */
+    if (husr2 == NULL || strlen(huser_get_nick(husr2)) == 1)
+        return;
+
+    if (huser_get_level(husr) < H_STAFF)
+        helpmod_channick_modes(husr, hchan, MC_DEADMIN ,HNOW);
+}
+
+static void helpmod_hook_channel_deadmin(int unused, void *args)
+{
+    hchannel *hchan = hchannel_get_by_channel(((channel**)args)[0]);
+    huser_channel *huserchan;
+    huser *husr;
+
+    if (hchan == NULL)
+        return;
+
+    husr = huser_get(((nick**)args)[2]);
+
+    assert(husr != NULL);
+
+    huserchan = huser_on_channel(husr, hchan);
+
+    assert(huserchan != NULL);
+
+    huserchan->flags &= ~HCUMODE_ADMIN;
+}
+
 static void helpmod_hook_channel_opped(int unused, void *args)
 {
     hchannel *hchan = hchannel_get_by_channel(((channel**)args)[0]);
@@ -378,6 +480,10 @@ void helpmod_registerhooks(void)
     registerhook(HOOK_CHANNEL_DEOPPED, &helpmod_hook_channel_deopped);
     registerhook(HOOK_CHANNEL_VOICED, &helpmod_hook_channel_voiced);
     registerhook(HOOK_CHANNEL_DEVOICED, &helpmod_hook_channel_devoiced);
+    registerhook(HOOK_CHANNEL_ADMIN, &helpmod_hook_channel_admin);
+    registerhook(HOOK_CHANNEL_DEADMIN, &helpmod_hook_channel_deadmin);
+    registerhook(HOOK_CHANNEL_OWNER, &helpmod_hook_channel_owner);
+    registerhook(HOOK_CHANNEL_DEOWNER, &helpmod_hook_channel_deowner);
     registerhook(HOOK_CHANNEL_TOPIC, &helpmod_hook_channel_topic);
     registerhook(HOOK_NICK_ACCOUNT, &helpmod_hook_nick_account);
     registerhook(HOOK_SERVER_NEWSERVER, &helpmod_hook_server_newserver);
@@ -394,7 +500,11 @@ void helpmod_deregisterhooks(void)
     deregisterhook(HOOK_CHANNEL_OPPED, &helpmod_hook_channel_opped);
     deregisterhook(HOOK_CHANNEL_DEOPPED, &helpmod_hook_channel_deopped);
     deregisterhook(HOOK_CHANNEL_VOICED, &helpmod_hook_channel_voiced);
-    deregisterhook(HOOK_CHANNEL_DEVOICED, &helpmod_hook_channel_devoiced);
+    deregisterhook(HOOK_CHANNEL_DEVOICED, &helpmod_hook_channel_devoiced);    
+	deregisterhook(HOOK_CHANNEL_ADMIN, &helpmod_hook_channel_admin);
+    deregisterhook(HOOK_CHANNEL_DEADMIN, &helpmod_hook_channel_deadmin);
+    deregisterhook(HOOK_CHANNEL_OWNER, &helpmod_hook_channel_owner);
+    deregisterhook(HOOK_CHANNEL_DEOWNER, &helpmod_hook_channel_deowner);
     deregisterhook(HOOK_CHANNEL_TOPIC, &helpmod_hook_channel_topic);
     deregisterhook(HOOK_NICK_ACCOUNT, &helpmod_hook_nick_account);
     deregisterhook(HOOK_SERVER_NEWSERVER, &helpmod_hook_server_newserver);

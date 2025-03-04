@@ -88,6 +88,10 @@
 #define ClearModNoAuth(x)  ((x)->flags &= ~CHANMODE_MODNOAUTH)
 #define ClearSingleTarg(x) ((x)->flags &= ~CHANMODE_SINGLETARG)
 
+#define     CUMODE_ADMIN   0x800000000
+#define     CUMODE_HOP     0x400000000
+#define     CUMODE_OWNER   0x200000000
+#define     CUMODE_SERVICE 0x100000000
 #define     CUMODE_OP      0x80000000
 #define     CUMODE_VOICE   0x40000000
 

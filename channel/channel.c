@@ -344,7 +344,7 @@ void sendchanburst(int hooknum, void *arg) {
   int bufpos;
   int newmode=1;
   int newline=1;
-  long modeorder[] = { 0, CUMODE_OP, CUMODE_VOICE, CUMODE_OP|CUMODE_VOICE };
+  long modeorder[] = { 0, CUMODE_SERVICE, CUMODE_OWNER, CUMODE_ADMIN, CUMODE_OP, CUMODE_HOP, CUMODE_VOICE, CUMODE_SERVICE|CUMODE_OWNER|CUMODE_ADMIN|CUMODE_OP|CUMODE_HOP|CUMODE_VOICE };
   long curmode;
   
   for (i=0;i<CHANNELHASHSIZE;i++) {
@@ -358,7 +358,7 @@ void sendchanburst(int hooknum, void *arg) {
       bufpos=sprintf(buf,"%s B %s %lu %s %s%s%s",mynumeric->content,cip->name->content,cp->timestamp,
         printflags(cp->flags,cmodeflags),IsLimit(cp)?buf2:"",
         IsKey(cp)?cp->key->content:"",IsKey(cp)?" ":"");
-      for(j=0;j<4;j++) {
+      for(j=0;j<8;j++) {
         curmode=modeorder[j];
         newmode=1;
         for (k=0;k<cp->users->hashsize;k++) {
@@ -370,8 +370,8 @@ void sendchanburst(int hooknum, void *arg) {
               bufpos=sprintf(buf,"%s B %s %lu ",mynumeric->content,cip->name->content,cp->timestamp);
             }
             if (newmode) {
-              bufpos+=sprintf(buf+bufpos,"%s%s%s%s%s",newline?"":",",longtonumeric(cp->users->content[k]&CU_NUMERICMASK,5),
-                (curmode==0?"":":"),(curmode&CUMODE_OP)?"o":"",(curmode&CUMODE_VOICE)?"v":"");
+              bufpos+=sprintf(buf+bufpos,"%s%s%s%s%s%s%s%s%s",newline?"":",",longtonumeric(cp->users->content[k]&CU_NUMERICMASK,5),
+                (curmode==0?"":":"),(curmode&CUMODE_SERVICE)?"O":"",(curmode&CUMODE_OWNER)?"q":"",(curmode&CUMODE_ADMIN)?"a":"",(curmode&CUMODE_OP)?"o":"",(curmode&CUMODE_HOP)?"h":"",(curmode&CUMODE_VOICE)?"v":"");
             } else {
               bufpos+=sprintf(buf+bufpos,",%s",longtonumeric(cp->users->content[k]&CU_NUMERICMASK,5));
             }

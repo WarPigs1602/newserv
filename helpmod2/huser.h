@@ -44,8 +44,10 @@ enum
 {
     HCUMODE_OP =     1 << 0,
     HCUMODE_VOICE =  1 << 1,
-    HQUEUE_DONE =    1 << 2,
-    H_IDLE_WARNING = 1 << 3
+    HQUEUE_DONE =    1 << 2,    
+    H_IDLE_WARNING = 1 << 3,
+	HCUMODE_ADMIN =  1 << 4,
+    HCUMODE_OWNER =  1 << 5
 };
 
 typedef struct huser_channel_struct

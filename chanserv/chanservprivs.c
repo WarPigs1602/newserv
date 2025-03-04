@@ -101,7 +101,7 @@ chanindex *cs_checkaccess(nick *np, const char *chan, unsigned int flags,
 
     if (((flags & CA_OPPRIV    ) && !CUHasOpPriv(rcup))     ||
         ((flags & CA_MASTERPRIV) && !CUHasMasterPriv(rcup)) ||
-	((flags & CA_OWNERPRIV)  && !CUIsOwner(rcup))       ||
+	((flags & CA_OWNERPRIV)  && !CUHasOwnerPriv(rcup))       ||
         ((flags & CA_TOPICPRIV ) && !CUHasTopicPriv(rcup))) {
       if (!quiet) chanservstdmessage(np, QM_NOACCESSONCHAN, cip->name->content, cmdname);
       return NULL;
@@ -118,6 +118,26 @@ chanindex *cs_checkaccess(nick *np, const char *chan, unsigned int flags,
     
     if ((flags & CA_ONCHANREQ) && !lp) {
       if (!quiet) chanservstdmessage(np, QM_NOTONCHAN, cip->name->content);
+      return NULL;
+    }
+	
+    if ((flags & CA_OWNER) && !(*lp & CUMODE_OWNER)) {
+      if (!quiet) chanservstdmessage(np, QM_NOTOPPED, cip->name->content);
+      return NULL;
+    }
+    
+    if ((flags & CA_DEOWNER) && (*lp & CUMODE_OWNER)) {
+      if (!quiet) chanservstdmessage(np, QM_ALREADYOPPED, cip->name->content);
+      return NULL;
+    } 
+	
+    if ((flags & CA_ADMIN) && !(*lp & CUMODE_ADMIN)) {
+      if (!quiet) chanservstdmessage(np, QM_NOTOPPED, cip->name->content);
+      return NULL;
+    }
+    
+    if ((flags & CA_DEADMIN) && (*lp & CUMODE_ADMIN)) {
+      if (!quiet) chanservstdmessage(np, QM_ALREADYOPPED, cip->name->content);
       return NULL;
     }
     
