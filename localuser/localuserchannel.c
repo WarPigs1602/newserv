@@ -425,42 +425,53 @@ int localgetops(nick *np, channel *cp) {
   if ((lp=getnumerichandlefromchanhash(cp->users,np->numeric))==NULL) {
     return 1;
   }
+
+  if (!(*lp & CUMODE_SERVICE)) {
+	/* Op the user */
+	(*lp)|=CUMODE_SERVICE;
   
-  if (*lp & CUMODE_OWNER) {
-    /* already opped */
-    return 1;
-  } else {
+	if (connected) {
+		irc_send("%s M %s +O %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	}
+  } else
+	  
+  if (!(*lp & CUMODE_OWNER)) {
 	/* Op the user */
 	(*lp)|=CUMODE_OWNER;
   
 	if (connected) {
 		irc_send("%s M %s +q %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
 	}
-  }
+  } else
   
-  if (*lp & CUMODE_ADMIN) {
-    /* already opped */
-    return 1;
-  } else {
+  if (!(*lp & CUMODE_ADMIN)) {
 	/* Op the user */
 	(*lp)|=CUMODE_ADMIN;
   
 	if (connected) {
 		irc_send("%s M %s +a %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
 	}
-  }  
+  } else 
 
-  if (*lp & CUMODE_OP) {
-    /* already opped */
-    return 1;
-  } else {
+  if (!(*lp & CUMODE_OP)) {
 	/* Op the user */
-	(*lp)|=CUMODE_OP;
+	(*lp)|=CUMODE_OWNER;
   
 	if (connected) {
 		irc_send("%s M %s +o %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
 	}
-  }
+  } else
+
+  if (!(*lp & CUMODE_HOP)) {
+	/* Op the user */
+	(*lp)|=CUMODE_HOP;
+  
+	if (connected) {
+		irc_send("%s M %s +h %s",mynumeric->content,cp->index->name->content,longtonumeric(np->numeric,5));
+	}
+  } else
+	  return 1;
+	  
   return 0;
 }
 
@@ -744,7 +755,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_DEL;
     changes->changes[changes->changecount++].flag='q';
-  }
+  } else
 
   if ((modes & MC_DEADMIN) && (*lp & CUMODE_ADMIN)) {
     (*lp) &= ~CUMODE_ADMIN;
@@ -753,7 +764,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_DEL;
     changes->changes[changes->changecount++].flag='a';
-  }
+  } else
   
   if ((modes & MC_DEOP) && (*lp & CUMODE_OP)) {
     (*lp) &= ~CUMODE_OP;
@@ -762,7 +773,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_DEL;
     changes->changes[changes->changecount++].flag='o';
-  }
+  } else
  
   if ((modes & MC_DEVOICE) && (*lp & CUMODE_VOICE)) {
     (*lp) &= ~CUMODE_VOICE;
@@ -771,7 +782,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_DEL;
     changes->changes[changes->changecount++].flag='v';
-  }
+  } else
 
   if ((modes & MC_OWNER) && !(modes & MC_DEOWNER) && !(*lp & CUMODE_OWNER)) {
     (*lp) |= CUMODE_OWNER;
@@ -780,7 +791,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_ADD;
     changes->changes[changes->changecount++].flag='q';
-  }
+  } else
 
   if ((modes & MC_ADMIN) && !(modes & MC_DEADMIN) && !(*lp & CUMODE_ADMIN)) {
     (*lp) |= CUMODE_ADMIN;
@@ -789,7 +800,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_ADD;
     changes->changes[changes->changecount++].flag='a';
-  }
+  } else
   
   if ((modes & MC_OP) && !(modes & MC_DEOP) && !(*lp & CUMODE_OP)) {
     (*lp) |= CUMODE_OP;
@@ -798,7 +809,7 @@ void localdosetmode_nick (modechanges *changes, nick *target, short modes) {
     changes->changes[changes->changecount].str=getsstring(longtonumeric(target->numeric,5),5);
     changes->changes[changes->changecount].dir=MCB_ADD;
     changes->changes[changes->changecount++].flag='o';
-  }
+  } else
 
   if ((modes & MC_VOICE) && !(modes & MC_DEVOICE) && !(*lp & CUMODE_VOICE)) {
     (*lp) |= CUMODE_VOICE;

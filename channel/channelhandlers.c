@@ -729,6 +729,7 @@ int handlemodemsg(void *source, int cargc, char **cargv) {
         break;
         
       /* Op/Voice */
+      case 'O':
       case 'q':
 	  case 'a':
       case 'o':
