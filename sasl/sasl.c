@@ -12,23 +12,21 @@
 
 int handlesaslmsg(void *source, int cargc, char **cargv) {
   reguser *rup;
-  nick *sender=source;
+  nick *sender=(nick *)source;
   char *authtype = "SASL";
   
   
   if (!(rup=findreguserbynick(cargv[1]))) {
-	printf("%s AUTHENTICATE %s FAIL\n",mynumeric->content,longtonumeric(sender->numeric,2)); 
-    irc_send("%s AUTHENTICATE %s FAIL",mynumeric->content,longtonumeric(sender->numeric,2)); 
+	printf("%s AUTHENTICATE %s FAIL %s %s\n",mynumeric->content,cargv[3],cargv[0],cargv[1]); 
     return CMD_ERROR;
   }
 
   if (!checkpassword(rup, cargv[2])) {
-    irc_send("%s AUTHENTICATE %s FAIL",mynumeric->content,longtonumeric(sender->numeric,2));   
-    printf("%s AUTHENTICATE %s FAIL\n",mynumeric->content,longtonumeric(sender->numeric,2)); 
+    irc_send("%s AUTHENTICATE %s FAIL %s %s",mynumeric->content,cargv[3],cargv[0],cargv[1]);   
     return CMD_ERROR;
   }
 
-  irc_send("%s AUTHENTICATE %s SUCCESS %s %s",mynumeric->content,longtonumeric(sender->numeric,5),cargv[0],cargv[1]);
+  irc_send("%s AUTHENTICATE %s SUCCESS %s %s",mynumeric->content,cargv[3],cargv[0],cargv[1]);
   irc_send("%s AC %s %s %ld %d", mynumeric->content,cargv[0], rup->username, rup->lastauth, rup->ID);
 
   return CMD_OK;
